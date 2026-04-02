@@ -145,3 +145,82 @@ cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 cv2.putText(img, f"{label} {confidence:.2f}",
             (x1, y1 + 30), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
 ```
+
+---
+
+## YOLOv8 Custom Model - Animal Detection
+
+Roboflow로 직접 라벨링한 동물 데이터셋을 YOLOv8s로 학습시킨 커스텀 모델 실시간 검출 프로그램
+
+---
+
+### 개요
+
+| 항목      | 내용                                            |
+|---------|-----------------------------------------------|
+| 모델      | YOLOv8s (직접 학습한 커스텀 모델)                       |
+| 탐지 클래스  | 6가지 (cat, cow, dog, sciuridae, sheep, spider) |
+| 입력      | 웹캠 실시간 영상                                     |
+| 신뢰도 임계값 | 0.5 이상만 탐지 결과로 표시                             |
+
+---
+
+### 환경
+
+- Python 3.9
+- ultralytics
+- opencv-python
+```powershell
+pip install ultralytics opencv-python
+```
+
+### 사전 준비
+
+아래 명령어로 커스텀 모델 학습 후 `runs/detect/animals_yolo/weights/last.pt` 생성
+```powershell
+yolo detect train data=C:\object-detection\animals\data.yaml model=yolov8s.pt epochs=20 imgsz=224 batch=8 name=animals_yolo
+```
+
+---
+
+### 실행 방법
+
+**웹캠 실시간 검출**
+```powershell
+python 05-yolo8-animals.py
+```
+
+- 웹캠 실행 중 `ESC` 키를 누르면 종료
+
+---
+
+### 주요 코드
+
+**클래스별 색상 지정**
+```python
+CLASS_COLORS = {
+    'cat':       (0, 0, 255),    # 빨
+    'cow':       (0, 100, 255),  # 주
+    'dog':       (0, 255, 255),  # 노
+    'sciuridae': (0, 255, 0),    # 초
+    'sheep':     (255, 100, 0),  # 파
+    'spider':    (255, 0, 255),  # 보
+}
+```
+
+**커스텀 모델 로드**
+```python
+model = YOLO("runs/detect/animals_yolo/weights/last.pt")
+```
+
+**객체 검출 및 결과 파싱**
+```python
+results = model(img, verbose=False)
+
+for result in results:
+    for box in result.boxes:
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        label = model.names[int(box.cls[0])]
+        confidence = float(box.conf[0])
+        color = CLASS_COLORS.get(label, (255, 255, 255))
+```
